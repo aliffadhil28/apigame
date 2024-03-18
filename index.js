@@ -7,8 +7,11 @@ import { dbConnect, jwtKey } from "./config.js";
 import cookieSession from "cookie-session";
 import defaultRouter from "./routes/index.js";
 import room from "./routes/room.js";
+import user from "./routes/user.js";
 import { Op } from "sequelize";
-import serverless from 'serverless-http'
+import { config } from 'dotenv';
+config();
+
 
 const Game = db.Games;
 const Score = db.Scores;
@@ -31,6 +34,7 @@ app.use(express.urlencoded({ extended: true }));
 // http listener
 app.use("/auth", defaultRouter);
 app.use("/room", room);
+app.use("/user", user);
 app.get("/getScore/:cls", async (req, res) => {
   const {cls} = req.params
   const getScore = await Score.findAll({
@@ -199,18 +203,19 @@ io.on("connection", (socket) => {
   });
 });
 
+const socketPort = process.env.SOCKET_PORT || 3001;
+const serverPort = process.env.SERVER_PORT || 8000;
+
 try {
   await dbConnect.authenticate();
   console.log("Connection has been established successfully.");
   dbConnect.sync({ alter: false, force: false });
-  server.listen(process.env.SOCKET_PORT, () => {
+  server.listen(socketPort, () => {
     console.log(`Server listening on port ${process.env.SOCKET_PORT}`);
   });
-  app.listen(process.env.SERVER_PORT, () => {
+  app.listen(serverPort, () => {
     console.log(`Http Req listening on port ${process.env.SERVER_PORT}`);
   });
 } catch (error) {
   console.error("Unable to connect to the database:", error);
 }
-
-module.exports.handler = serverless(app);
